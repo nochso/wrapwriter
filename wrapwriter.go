@@ -1,3 +1,4 @@
+// Package wrapwriter wraps strings for console output.
 package wrapwriter
 
 import (
@@ -6,6 +7,10 @@ import (
 	"unicode/utf8"
 )
 
+// Wrap text to width or fewer runes.
+//
+// Text with multiple lines is supported. Lines are assumed to use a single
+// line feed "\n". Width must be positive.
 func Wrap(text string, width int) (string, error) {
 	if width <= 0 {
 		return "", fmt.Errorf("expecting positive wrap width, got %d", width)
@@ -22,6 +27,7 @@ func Wrap(text string, width int) (string, error) {
 	return out.String(), nil
 }
 
+// nextEOL looks for the end-of-line position. hasEOL may return false on the very last line.
 func nextEOL(data []byte, offset int) (pos int, hasEOL bool) {
 	pos = bytes.IndexByte(data[offset:], '\n')
 	if pos == -1 {
@@ -33,6 +39,7 @@ func nextEOL(data []byte, offset int) (pos int, hasEOL bool) {
 	return
 }
 
+// nextEOW looks for the end of the current word.
 func nextEOW(data []byte, offset int) (end int) {
 	end = bytes.IndexByte(data[offset:], ' ')
 	if end == -1 {
@@ -43,6 +50,7 @@ func nextEOW(data []byte, offset int) (end int) {
 	return
 }
 
+// wrapLine wraps a single line into buf.
 func wrapLine(out *bytes.Buffer, line []byte, hasEOL bool, width int) {
 	offset := 0
 	firstWord := true
