@@ -19,11 +19,13 @@ var tests = map[string][]testInput{
 		{"wrap me!", "wrap\nme!", 5},
 		{"wrap me!", "wrap\nme!", 7},
 		{"wrap me!", "wrap me!", 8},
+		{"ääää ääää", "ääää\nääää", 4},
 	},
 	"Hard-wrap long words": {
 		{"thisiswaytoolong", "this\niswa\nytoo\nlong", 4},
 		{"it iswaytoolong", "it i\nsway\ntool\nong", 4},
 		{"\nthisiswaytoolong\n", "\nthis\niswa\nytoo\nlong\n", 4},
+		{"ääää", "ää\nää", 2},
 	},
 	"Keep linefeeds": {
 		{"\n\n", "\n\n", 4},
