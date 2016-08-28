@@ -86,26 +86,18 @@ func wrapLine(out *bytes.Buffer, line []byte, hasEOL bool, width int) {
 			remaining = width - wordLen
 		} else { // hard-wrap
 			if !firstWord { // consider leading space
-				out.WriteByte(' ')
+				if remaining > 1 {
+					out.WriteByte(' ')
+				}
 				remaining--
 			}
-			// fill rest of line
-			out.WriteString(word[0:remaining])
-			out.WriteByte('\n')
-			wStart := remaining
-			remaining = width
-			for wStart < wordLen {
+			for _, char := range word {
 				if remaining <= 0 {
 					out.WriteByte('\n')
 					remaining = width
 				}
-				wEnd := wStart + width
-				if wEnd > wordLen {
-					wEnd = wordLen
-				}
-				out.WriteString(word[wStart:wEnd])
-				remaining = width - (wEnd - wStart)
-				wStart = wEnd
+				out.WriteRune(char)
+				remaining--
 			}
 		}
 		firstWord = false
