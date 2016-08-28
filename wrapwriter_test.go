@@ -1,9 +1,17 @@
 package wrapwriter
 
 import (
+	"bytes"
+	"flag"
+	"io/ioutil"
+	"log"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
 	"testing"
 
-	"github.com/kylelemons/godebug/pretty"
+	"github.com/pmezard/go-difflib/difflib"
 )
 
 type testInput struct {
@@ -64,10 +72,9 @@ func testWrap(test testInput, t *testing.T) {
 	}
 	if actual != test.out {
 		t.Errorf(
-			"Width: %d\nInput: %s\nDiff (-got +want):\n%s",
+			"Width: %d\nDiff (-got +want):\n%s",
 			test.width,
-			pretty.Sprint(test.in),
-			pretty.Compare(actual, test.out),
+			diff(test.out, actual),
 		)
 	}
 }
@@ -81,4 +88,66 @@ func TestWrap_widthMustBePositive(t *testing.T) {
 	if err == nil {
 		t.Error("expecting error when using width=1, got nil")
 	}
+}
+
+var update = flag.Bool("update", false, "update golden files")
+
+func TestWrap_golden(t *testing.T) {
+	var inputFiles []string
+	filepath.Walk("test-fixtures/golden", func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.Mode().IsRegular() && !strings.HasSuffix(path, ".golden") {
+			inputFiles = append(inputFiles, path)
+		}
+		return nil
+	})
+	for _, inputFile := range inputFiles {
+		input, err := ioutil.ReadFile(inputFile)
+		if err != nil {
+			t.Fatal(err)
+		}
+		inputStr := string(input)
+		firstLinePos := bytes.IndexByte(input, '\n')
+		if firstLinePos == -1 {
+			t.Fatalf("input file contains no newline: %s", inputFile)
+		}
+		width, err := strconv.Atoi(string(input[0:firstLinePos]))
+		if err != nil {
+			t.Fatalf("parsing width: %s: %s", inputFile, err)
+		}
+		actualStr, err := Wrap(inputStr, width)
+		if err != nil {
+			t.Error(err)
+		}
+		actual := []byte(actualStr)
+		golden := inputFile + ".golden"
+		if *update {
+			ioutil.WriteFile(golden, actual, 0644)
+		}
+		expected, _ := ioutil.ReadFile(golden)
+		if !bytes.Equal(actual, expected) {
+			t.Errorf(
+				"Width: %d\nDiff (-got +want):\n%s",
+				width,
+				diff(string(expected), actualStr),
+			)
+		}
+	}
+}
+
+func diff(expected, actual string) string {
+	diff := difflib.UnifiedDiff{
+		A:        difflib.SplitLines(expected),
+		B:        difflib.SplitLines(actual),
+		FromFile: "Expected",
+		ToFile:   "Actual",
+		Context:  1,
+	}
+	out, err := difflib.GetUnifiedDiffString(diff)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return out
 }
